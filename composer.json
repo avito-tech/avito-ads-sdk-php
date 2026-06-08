@@ -1,0 +1,66 @@
+{
+    "name": "avito-tech/avito-ads-sdk-php",
+    "description": "PHP-клиент для публичного API кабинета Авито Реклама (Avito Ads). Поддерживает PHP 7.4+ и 8.x, работает с Laravel, Symfony, CodeIgniter и без фреймворка.",
+    "type": "library",
+    "keywords": ["avito", "avito-ads", "реклама", "api", "client", "guzzle", "laravel", "symfony", "codeigniter"],
+    "homepage": "https://github.com/avito-tech/avito-ads-sdk-php",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "asbezrukov",
+            "homepage": "https://github.com/asbezrukov"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/avito-tech/avito-ads-sdk-php/issues",
+        "source": "https://github.com/avito-tech/avito-ads-sdk-php"
+    },
+    "require": {
+        "php": "^7.4 || ^8.0",
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.0",
+        "psr/log": "^1.0 || ^2.0 || ^3.0",
+        "psr/simple-cache": "^1.0 || ^2.0 || ^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "phpstan/phpstan": "^1.10",
+        "squizlabs/php_codesniffer": "^3.7"
+    },
+    "suggest": {
+        "illuminate/support": "Нужен для интеграции с Laravel (ServiceProvider и фасад).",
+        "symfony/framework-bundle": "Нужен для интеграции с Symfony (бандл и автоконфигурация сервисов).",
+        "codeigniter4/framework": "Нужен для интеграции с CodeIgniter 4."
+    },
+    "autoload": {
+        "psr-4": {
+            "AvitoAds\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "AvitoAds\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AvitoAds\\Integration\\Laravel\\AvitoAdsServiceProvider"
+            ],
+            "aliases": {
+                "AvitoAds": "AvitoAds\\Integration\\Laravel\\AvitoAdsFacade"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse",
+        "cs": "phpcs",
+        "cs-fix": "phpcbf"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

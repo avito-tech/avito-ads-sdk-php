@@ -1,0 +1,12 @@
+parameters:
+    level: 6
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+    excludePaths:
+        analyse:
+            # Бриджи к фреймворкам опциональны (illuminate/symfony/codeigniter
+            # ставятся через suggest, а CodeIgniter 4 требует PHP 8.1+ и несовместим
+            # с матрицей 7.4). Без установленных фреймворков их классы не
+            # резолвятся, поэтому статический анализ этих файлов отключён.
+            - src/Integration
