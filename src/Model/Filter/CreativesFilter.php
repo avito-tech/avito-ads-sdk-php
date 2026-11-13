@@ -55,6 +55,9 @@ final class CreativesFilter extends AbstractFilter
     }
 
     /**
+     * Значения не проверяются на клиенте: можно передавать любые статусы из
+     * \AvitoAds\Enum\CreativesStatus, включая новые (`will_launch_soon`, `pausing` и др.).
+     *
      * @param string[] $statuses см. \AvitoAds\Enum\CreativesStatus
      * @return self
      */

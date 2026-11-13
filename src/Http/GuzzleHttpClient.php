@@ -8,6 +8,7 @@ use AvitoAds\Exception\AccessDeniedException;
 use AvitoAds\Exception\ApiException;
 use AvitoAds\Exception\AuthenticationException;
 use AvitoAds\Exception\BadRequestException;
+use AvitoAds\Exception\ConflictException;
 use AvitoAds\Exception\InvalidResponseException;
 use AvitoAds\Exception\NetworkException;
 use AvitoAds\Exception\NotFoundException;
@@ -27,6 +28,9 @@ use Psr\Log\NullLogger;
  * заголовок `Api-Point-Balance` и преобразует HTTP-ошибки в типизированные
  * исключения библиотеки. Авторизация и повторы навешиваются через middleware
  * при сборке Guzzle-клиента (см. ClientBuilder).
+ *
+ * Каждый запрос уходит с заголовком User-Agent `avito-ads-sdk-php/<версия>`
+ * (пользовательский UA дополняется этой меткой, см. UserAgent).
  */
 final class GuzzleHttpClient implements HttpClientInterface
 {
@@ -36,10 +40,17 @@ final class GuzzleHttpClient implements HttpClientInterface
     /** @var LoggerInterface */
     private $logger;
 
-    public function __construct(ClientInterface $guzzle, ?LoggerInterface $logger = null)
+    /** @var string */
+    private $userAgent;
+
+    /**
+     * @param string|null $userAgent пользовательский User-Agent; метка SDK дописывается к нему
+     */
+    public function __construct(ClientInterface $guzzle, ?LoggerInterface $logger = null, ?string $userAgent = null)
     {
         $this->guzzle = $guzzle;
         $this->logger = $logger ?? new NullLogger();
+        $this->userAgent = UserAgent::build($userAgent);
     }
 
     public function request(string $method, string $path, ?array $body = null): ApiResponse
@@ -49,6 +60,7 @@ final class GuzzleHttpClient implements HttpClientInterface
             'http_errors' => false,
             'headers' => [
                 'Accept' => 'application/json',
+                'User-Agent' => $this->userAgent,
             ],
         ];
 
@@ -188,6 +200,8 @@ final class GuzzleHttpClient implements HttpClientInterface
                 return new AccessDeniedException($message, $status, $code, null, $response);
             case $status === 404:
                 return new NotFoundException($message, $status, $code, null, $response);
+            case $status === 409:
+                return new ConflictException($message, $status, $code, null, $response);
             case $status === 429:
                 return new RateLimitException($message, $status, $code, null, $response);
             case $status >= 500:

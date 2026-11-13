@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace AvitoAds\Model;
 
 /**
- * Баланс аккаунта. Все значения — целые числа в рублях с НДС.
+ * Баланс аккаунта. Все значения — целые числа с НДС: в рублях и точно в копейках.
  */
 final class Balance extends AbstractModel
 {
@@ -19,5 +19,17 @@ final class Balance extends AbstractModel
     public function getBonusBalance(): int
     {
         return (int) $this->getInt('bonusBalance');
+    }
+
+    /** Денежные средства, в копейках. */
+    public function getBalanceKopeks(): int
+    {
+        return (int) $this->getInt('balanceKopeks');
+    }
+
+    /** Бонусы, в копейках. */
+    public function getBonusBalanceKopeks(): int
+    {
+        return (int) $this->getInt('bonusBalanceKopeks');
     }
 }

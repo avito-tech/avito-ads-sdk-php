@@ -7,6 +7,7 @@ namespace AvitoAds;
 use AvitoAds\Auth\Credentials;
 use AvitoAds\Auth\Storage\TokenStorageInterface;
 use AvitoAds\Exception\ConfigurationException;
+use AvitoAds\Http\UserAgent;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 
@@ -63,6 +64,9 @@ final class Configuration
 
     /** @var callable|null Кастомный Guzzle-handler (для тестов/моков). */
     private $httpHandler;
+
+    /** @var string|null Пользовательский User-Agent (метка SDK дописывается к нему). */
+    private $userAgent;
 
     public function __construct(Credentials $credentials, int $accountId)
     {
@@ -204,6 +208,23 @@ final class Configuration
         return $clone;
     }
 
+    /**
+     * Задаёт собственный User-Agent приложения.
+     *
+     * Метка SDK не заменяется, а дописывается через пробел:
+     * `my-app/1.0` → `my-app/1.0 avito-ads-sdk-php/1.4.0`. Если строка уже содержит
+     * `avito-ads-sdk-php/`, она отправляется как есть.
+     *
+     * @return static
+     */
+    public function withUserAgent(string $userAgent): self
+    {
+        $clone = clone $this;
+        $clone->userAgent = $userAgent;
+
+        return $clone;
+    }
+
     public function getCredentials(): Credentials
     {
         return $this->credentials;
@@ -283,6 +304,14 @@ final class Configuration
     public function getTokenStorage(): ?TokenStorageInterface
     {
         return $this->tokenStorage;
+    }
+
+    /**
+     * Итоговый User-Agent, который уходит в запрос токена и в запросы к API.
+     */
+    public function getUserAgent(): string
+    {
+        return UserAgent::build($this->userAgent);
     }
 
     public function getHttpHandler(): ?callable

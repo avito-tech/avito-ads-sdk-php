@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AvitoAds\Resource;
 
+use AvitoAds\Exception\ConflictException;
 use AvitoAds\Exception\ValidationException;
 use AvitoAds\Model\Filter\AbstractFilter;
 use AvitoAds\Model\Group;
@@ -61,6 +62,8 @@ final class GroupResource extends AbstractResource
      * POST /v1/account/{accountID}/group/{groupID}/change-budget
      *
      * @param int $budget новый бюджет в рублях, не менее 1
+     *
+     * @throws ConflictException HTTP 409: группа изменилась параллельно; перечитайте её и повторите
      */
     public function changeBudget(int $groupId, int $budget): void
     {
@@ -78,6 +81,8 @@ final class GroupResource extends AbstractResource
      * POST /v1/account/{accountID}/group/{groupID}/change-price
      *
      * @param int $price новая ставка в рублях, не менее 1
+     *
+     * @throws ConflictException HTTP 409: группа изменилась параллельно; перечитайте её и повторите
      */
     public function changePrice(int $groupId, int $price): void
     {

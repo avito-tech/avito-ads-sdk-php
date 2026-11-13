@@ -12,9 +12,9 @@ namespace AvitoAds\Model;
 final class CampaignStatisticResult extends AbstractModel
 {
     /** Статистика кампании. */
-    public function getCampaign(): EntityStatistic
+    public function getCampaign(): CampaignStatistic
     {
-        return EntityStatistic::fromArray($this->getArray('campaign'));
+        return CampaignStatistic::fromArray($this->getArray('campaign'));
     }
 
     /**

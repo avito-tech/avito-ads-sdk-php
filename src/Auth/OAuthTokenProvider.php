@@ -7,6 +7,7 @@ namespace AvitoAds\Auth;
 use AvitoAds\Auth\Storage\InMemoryTokenStorage;
 use AvitoAds\Auth\Storage\TokenStorageInterface;
 use AvitoAds\Exception\AuthenticationException;
+use AvitoAds\Http\UserAgent;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
@@ -19,6 +20,8 @@ use Psr\Log\NullLogger;
  * его заранее (с учётом leeway) до истечения срока жизни. Эндпоинт `/token`
  * находится в корне домена (`https://api.avito.ru/token`) и не зависит от
  * выбора прод/песочница.
+ *
+ * В запрос токена уходит тот же User-Agent, что и в запросы к API (см. UserAgent).
  */
 final class OAuthTokenProvider implements TokenProviderInterface
 {
@@ -40,13 +43,20 @@ final class OAuthTokenProvider implements TokenProviderInterface
     /** @var LoggerInterface */
     private $logger;
 
+    /** @var string */
+    private $userAgent;
+
+    /**
+     * @param string|null $userAgent пользовательский User-Agent; метка SDK дописывается к нему
+     */
     public function __construct(
         ClientInterface $httpClient,
         Credentials $credentials,
         string $tokenUrl = 'https://api.avito.ru/token',
         ?TokenStorageInterface $storage = null,
         int $leeway = 60,
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
+        ?string $userAgent = null
     ) {
         $this->httpClient = $httpClient;
         $this->credentials = $credentials;
@@ -54,6 +64,7 @@ final class OAuthTokenProvider implements TokenProviderInterface
         $this->storage = $storage ?? new InMemoryTokenStorage();
         $this->leeway = $leeway;
         $this->logger = $logger ?? new NullLogger();
+        $this->userAgent = UserAgent::build($userAgent);
     }
 
     public function getToken(): AccessToken
@@ -90,6 +101,7 @@ final class OAuthTokenProvider implements TokenProviderInterface
                 'headers' => [
                     'Content-Type' => 'application/x-www-form-urlencoded',
                     'Accept' => 'application/json',
+                    'User-Agent' => $this->userAgent,
                 ],
                 'form_params' => [
                     'grant_type' => 'client_credentials',

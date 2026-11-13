@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace AvitoAds\Tests\Unit\Resource;
 
+use AvitoAds\Exception\ApiException;
+use AvitoAds\Exception\ConflictException;
 use AvitoAds\Exception\ValidationException;
 use AvitoAds\Model\Campaign;
 use AvitoAds\Model\Pagination\PaginatedResult;
@@ -150,5 +152,69 @@ final class ResourceTest extends TestCase
         $client = $this->makeClient([$this->tokenResponse()]);
         $this->expectException(ValidationException::class);
         $client->users()->add(42, 'superhero');
+    }
+
+    /**
+     * @dataProvider conflictProvider
+     */
+    public function testChangeBudgetAndPriceConflictThrowsConflictException(string $method): void
+    {
+        $client = $this->makeClient([
+            $this->tokenResponse(),
+            $this->jsonResponse(409, ['code' => 'conflict', 'message' => 'Конфликт версий группы']),
+        ]);
+
+        try {
+            $client->groups()->{$method}(555, 100);
+            self::fail('Ожидалось исключение.');
+        } catch (ConflictException $e) {
+            // Наследник ApiException: старые обработчики продолжают ловить 409.
+            self::assertInstanceOf(ApiException::class, $e);
+            self::assertSame(409, $e->getStatusCode());
+            self::assertSame('conflict', $e->getErrorCode());
+        }
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public function conflictProvider(): array
+    {
+        return [
+            'change-budget' => ['changeBudget'],
+            'change-price' => ['changePrice'],
+        ];
+    }
+
+    public function testCreateSandboxAccount207WithWarningsIsSuccess(): void
+    {
+        $client = $this->makeClient([
+            $this->tokenResponse(),
+            $this->jsonResponse(207, ['accountID' => 777, 'warnings' => ['creatives not prepared']]),
+        ]);
+
+        $created = $client->account()->createSandboxAccount(
+            '7712345678',
+            'Тест',
+            'ООО Тест',
+            '1177746123456',
+            'г. Москва',
+            'ul',
+            ['name' => 'Иван', 'phone' => '+79001234567']
+        );
+        self::assertSame(777, $created->getAccountId());
+        self::assertSame(['creatives not prepared'], $created->getWarnings());
+
+        $body = (string) $this->mockHandler->getLastRequest()->getBody();
+        self::assertStringContainsString('"legalType":"ul"', $body);
+        // actualAddress необязателен: без значения не отправляется (API возьмёт legalAddress).
+        self::assertStringNotContainsString('actualAddress', $body);
+    }
+
+    public function testCreateSandboxAccountRejectsInvalidLegalType(): void
+    {
+        $client = $this->makeClient([$this->tokenResponse()]);
+        $this->expectException(ValidationException::class);
+        $client->account()->createSandboxAccount('1', 'a', 'b', '2', 'г. Москва', 'г. Москва', ['name' => 'x']);
     }
 }
