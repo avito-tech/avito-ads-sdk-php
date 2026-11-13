@@ -53,7 +53,7 @@ final class ClientBuilder
             'connect_timeout' => $config->getConnectTimeout(),
         ]);
 
-        return new GuzzleHttpClient($guzzle, $config->getLogger());
+        return new GuzzleHttpClient($guzzle, $config->getLogger(), $config->getUserAgent());
     }
 
     /**
@@ -74,7 +74,8 @@ final class ClientBuilder
             $config->getTokenUrl(),
             self::resolveStorage($config),
             $config->getTokenLeeway(),
-            $config->getLogger()
+            $config->getLogger(),
+            $config->getUserAgent()
         );
     }
 

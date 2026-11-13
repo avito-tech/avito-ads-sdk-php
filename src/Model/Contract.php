@@ -77,4 +77,16 @@ final class Contract extends AbstractModel
     {
         return $this->getInt('parentId');
     }
+
+    /** Признак договора `isAgentActingForPublisher` (null — не задан). */
+    public function isAgentActingForPublisher(): ?bool
+    {
+        return $this->getBool('isAgentActingForPublisher');
+    }
+
+    /** Признак договора `isCreativeReporter` (null — не задан). */
+    public function isCreativeReporter(): ?bool
+    {
+        return $this->getBool('isCreativeReporter');
+    }
 }

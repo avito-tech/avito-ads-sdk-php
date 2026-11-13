@@ -85,4 +85,55 @@ abstract class AbstractModel
 
         return is_array($value) ? $value : [];
     }
+
+    /**
+     * Список строк; нестроковые скаляры приводятся к строке, прочие элементы пропускаются.
+     *
+     * @return string[]
+     */
+    protected function getStringList(string $key): array
+    {
+        $result = [];
+        foreach ($this->getArray($key) as $item) {
+            if (is_scalar($item)) {
+                $result[] = (string) $item;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Список целых чисел; нечисловые элементы пропускаются.
+     *
+     * @return int[]
+     */
+    protected function getIntList(string $key): array
+    {
+        $result = [];
+        foreach ($this->getArray($key) as $item) {
+            if (is_numeric($item)) {
+                $result[] = (int) $item;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Список вложенных моделей из массива объектов.
+     *
+     * @template T of AbstractModel
+     * @param class-string<T> $class
+     * @return T[]
+     */
+    protected function getModelList(string $key, string $class): array
+    {
+        $result = [];
+        foreach ($this->getArray($key) as $item) {
+            $result[] = $class::fromArray(is_array($item) ? $item : []);
+        }
+
+        return $result;
+    }
 }

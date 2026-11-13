@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace AvitoAds\Resource;
 
+use AvitoAds\Enum\LegalType;
 use AvitoAds\Exception\ConfigurationException;
+use AvitoAds\Exception\ValidationException;
 use AvitoAds\Model\Account;
 use AvitoAds\Model\Balance;
 use AvitoAds\Model\CreatedAccount;
@@ -45,7 +47,19 @@ final class AccountResource extends AbstractResource
      *
      * POST /v1/account/{accountID}
      *
-     * @param array<string, mixed> $contact контактное лицо: ['name' => ..., 'phone' => ...]
+     * Вместе с аккаунтом API готовит тестовые кампании, группы и креативы. Если
+     * часть данных не подготовилась, API отвечает `207 Multi-Status`: аккаунт создан,
+     * причины — в CreatedAccount::getWarnings().
+     *
+     * Порядок параметров соответствует swagger 1.4.0: сначала обязательные поля
+     * (`legalType` обязателен), затем необязательные `actualAddress` и `kpp`.
+     *
+     * @param string               $legalType     см. \AvitoAds\Enum\LegalType
+     * @param array<string, mixed> $contact       контактное лицо: ['name' => ..., 'phone' => ...]
+     * @param string|null          $actualAddress фактический адрес; если не передан, API берёт legalAddress
+     * @param string|null          $kpp           КПП организации
+     *
+     * @throws ValidationException если legalType не из LegalType
      */
     public function createSandboxAccount(
         string $inn,
@@ -53,11 +67,12 @@ final class AccountResource extends AbstractResource
         string $longName,
         string $ogrn,
         string $legalAddress,
-        string $actualAddress,
+        string $legalType,
         array $contact,
-        ?string $kpp = null,
-        ?string $legalType = null
+        ?string $actualAddress = null,
+        ?string $kpp = null
     ): CreatedAccount {
+        LegalType::assertValid($legalType);
         if ($contact === []) {
             throw new ConfigurationException('Для создания аккаунта необходимо передать контактное лицо (contact).');
         }
@@ -68,14 +83,14 @@ final class AccountResource extends AbstractResource
             'longName' => $longName,
             'ogrn' => $ogrn,
             'legalAddress' => $legalAddress,
-            'actualAddress' => $actualAddress,
+            'legalType' => $legalType,
             'contact' => $contact,
         ];
+        if ($actualAddress !== null) {
+            $body['actualAddress'] = $actualAddress;
+        }
         if ($kpp !== null) {
             $body['kpp'] = $kpp;
-        }
-        if ($legalType !== null) {
-            $body['legalType'] = $legalType;
         }
 
         $response = $this->http->request('POST', $this->accountPath(), $body);

@@ -7,7 +7,8 @@ namespace AvitoAds\Model;
 /**
  * Набор показателей статистики за период (или за один день).
  *
- * Денежные значения (spend, spendBonus) — целые в рублях; ставки и доли (ctr,
+ * Денежные значения (spend, spendBonus) — целые в рублях, spendKopeks и
+ * spendBonusKopeks — точные значения в копейках; ставки и доли (ctr,
  * cpm, cpc, q*, vtr) — числа с плавающей точкой. Поля video* и q* заполняются
  * только для видеокампаний.
  */
@@ -45,6 +46,18 @@ final class StatsData extends AbstractModel
     public function getSpendBonus(): int
     {
         return (int) $this->getInt('spendBonus');
+    }
+
+    /** Потрачено денег, в копейках. */
+    public function getSpendKopeks(): int
+    {
+        return (int) $this->getInt('spendKopeks');
+    }
+
+    /** Потрачено бонусов, в копейках. */
+    public function getSpendBonusKopeks(): int
+    {
+        return (int) $this->getInt('spendBonusKopeks');
     }
 
     /** Средняя стоимость CPM. */

@@ -8,6 +8,16 @@ PHP-клиент для API **Авито Реклама** (Avito Ads API).
 
 Библиотека закрывает все основные методы API: аккаунт и баланс, дочерние аккаунты и переводы средств, рекламодателей, договоры, кампании, группы объявлений, креативы, статистику и управление пользователями. Транспорт построен на [Guzzle](https://docs.guzzlephp.org/), авторизация — OAuth2 `client_credentials` с автоматическим обновлением и кэшированием токена, а также повторными попытками при ошибках `429` и `5xx`.
 
+## Версия
+
+Версия SDK = версия публичного API Авито Рекламы (swagger), которую он реализует. Текущая — **1.4.0**.
+Спецификация лежит в корне репозитория (`openapi.json`), версии доступны в коде:
+
+```php
+echo \AvitoAds\Client::VERSION;      // версия SDK, 1.4.0
+echo \AvitoAds\Client::API_VERSION;  // версия swagger, 1.4.0
+```
+
 ## Возможности
 
 - Поддержка **PHP 7.4+ и PHP 8.x**.
@@ -17,6 +27,7 @@ PHP-клиент для API **Авито Реклама** (Avito Ads API).
 - Типизированные модели ответов и типизированные исключения по кодам ошибок.
 - Постраничная выборка с удобным перебором всех страниц через генератор.
 - Чтение остатка лимита из заголовка `Api-Point-Balance`.
+- Терпимость к расширению API: неизвестные статусы и коды причин в ответах не вызывают ошибку.
 
 ## Требования
 
@@ -62,7 +73,19 @@ $config = Configuration::create($clientId, $clientSecret, $accountId)
     ->withConnectTimeout(10.0)       // таймаут соединения, сек
     ->withMaxRetries(4)              // макс. число повторов при 429/5xx
     ->withRetryBaseDelay(1000)       // базовая задержка повтора, мс
-    ->withTokenLeeway(60);           // запас на досрочное обновление токена, сек
+    ->withTokenLeeway(60)            // запас на досрочное обновление токена, сек
+    ->withUserAgent('my-app/1.0');   // свой User-Agent (метка SDK дописывается)
+```
+
+### User-Agent
+
+SDK отправляет заголовок `User-Agent: avito-ads-sdk-php/<версия>` во все запросы к API и в запрос токена. По этой метке API понимает, что запрос пришёл из PHP SDK.
+
+Собственный User-Agent метку не заменяет: SDK дописывает её через пробел. Если метка уже есть в строке, второй раз она не добавляется.
+
+```php
+$config = $config->withUserAgent('my-app/1.0');
+echo $config->getUserAgent(); // my-app/1.0 avito-ads-sdk-php/1.4.0
 ```
 
 ### Окружения
@@ -195,6 +218,62 @@ $client->groups()->changeBudget($groupId = 555, 100000);
 $client->groups()->changePrice($groupId = 555, 25);
 ```
 
+#### Причины статуса
+
+У кампаний, групп и креативов есть `getStatusReasons()` — все коды причин текущего статуса (`[]`, если причин нет) — и `getTopStatusReason()` — главная причина (`""`, если не определена, даже когда список не пуст). API может добавлять новые коды и статусы: SDK возвращает их строками как есть, без ошибки.
+
+```php
+use AvitoAds\Enum\CampaignStatus;
+
+foreach ($client->campaigns()->iterate() as $campaign) {
+    if ($campaign->getStatus() === CampaignStatus::PARTIALLY_ACTIVE) {
+        echo 'Главная причина: ', $campaign->getTopStatusReason() ?: 'не определена', PHP_EOL;
+        echo 'Все причины: ', implode(', ', $campaign->getStatusReasons()), PHP_EOL;
+    }
+}
+```
+
+#### Бюджет кампании: null — это не 0
+
+`Campaign::getBudget()` и `getBudgetKopeks()` возвращают `?int`. У кампании, где одновременно есть группы с дневным бюджетом и бюджетом на весь период (`getBudgetFrequency() === 'mixed'`), суммы нет — вернётся `null`. У пустой кампании бюджет равен `0`.
+
+```php
+use AvitoAds\Enum\CampaignBudgetFrequency;
+
+$budget = $campaign->getBudgetKopeks();
+if ($budget === null) {
+    // CampaignBudgetFrequency::MIXED: смотрите бюджеты групп
+} else {
+    printf('%.2f ₽ (%s)%s', $budget / 100, $campaign->getBudgetFrequency(), PHP_EOL);
+}
+```
+
+Денежные поля доступны и в копейках: `Balance::getBalanceKopeks()`, `StatsData::getSpendKopeks()`, `Group::getBudgetKopeks()`, `Group::getPriceKopeks()` и др.
+
+#### Частотные ограничения группы
+
+Частотность группы задаётся списком правил `getFrequencyRules()`: «не более `count` показов за `period`» (`no_limit`, `day`, `week`, `month`). Старые `getFrequencyCount()`/`getFrequencyPeriod()` устарели и соответствуют первому правилу.
+
+```php
+foreach ($group->getFrequencyRules() as $rule) {
+    echo $rule->getCount(), ' показов / ', $rule->getPeriod(), PHP_EOL;
+}
+```
+
+#### Конфликт при изменении бюджета или ставки
+
+Если группа изменилась параллельно, `changeBudget()`/`changePrice()` бросают `ConflictException` (HTTP 409). Перечитайте группу и повторите изменение.
+
+```php
+use AvitoAds\Exception\ConflictException;
+
+try {
+    $client->groups()->changeBudget($groupId, 100000);
+} catch (ConflictException $e) {
+    // группа изменилась: перечитать и повторить
+}
+```
+
 ### Статистика
 
 Период не может превышать 100 дней; даты — в формате `YYYY-MM-DD`. Эти ограничения проверяются на стороне клиента.
@@ -203,6 +282,8 @@ $client->groups()->changePrice($groupId = 555, 25);
 $stats = $client->statistics()->campaign($campaignId = 555, '2025-01-01', '2025-01-31');
 $total = $stats->getCampaign()->getTotalData();
 echo 'Показы: ', $total->getViews(), ', клики: ', $total->getClicks(), PHP_EOL;
+
+echo 'Модель оплаты: ', $stats->getCampaign()->getPaymentModel(), PHP_EOL; // CampaignStatistic
 
 $byGroups = $client->statistics()->groups($campaignId, '2025-01-01', '2025-01-31', [101, 102]);
 $byCreatives = $client->statistics()->creatives($campaignId, '2025-01-01', '2025-01-31', [201, 202]);
@@ -256,7 +337,7 @@ use AvitoAds\Model\Filter\DateRange;
 use AvitoAds\Enum\CampaignStatus;
 
 $filter = CampaignsFilter::create()
-    ->statuses([CampaignStatus::ACTIVE])
+    ->statuses([CampaignStatus::ACTIVE, CampaignStatus::PARTIALLY_ACTIVE, CampaignStatus::WILL_STOP_SOON])
     ->contractIds([10, 20])
     ->createdAt(new DateRange('2026-06-01', '2026-06-30'));
 
@@ -273,6 +354,7 @@ $campaigns = $client->campaigns()->list($filter);
 | 401 | `AuthenticationException` |
 | 403 | `AccessDeniedException` |
 | 404 | `NotFoundException` |
+| 409 | `ConflictException` (конфликт версий группы в `changeBudget()`/`changePrice()`) |
 | 429 | `RateLimitException` (метод `getRetryAfter()`) |
 | 5xx | `ServerException` |
 | сеть/таймаут | `NetworkException` |
@@ -388,9 +470,11 @@ $balance = $client->account()->getBalance();
 
 ## Песочница
 
-Создание тестового аккаунта доступно только в песочнице:
+Создание тестового аккаунта доступно только в песочнице. `legalType` обязателен, `actualAddress` — нет (по умолчанию API берёт юридический адрес):
 
 ```php
+use AvitoAds\Enum\LegalType;
+
 $config = Configuration::create($clientId, $clientSecret, $accountId)->sandbox();
 $client = new Client($config);
 
@@ -400,9 +484,17 @@ $created = $client->account()->createSandboxAccount(
     longName: 'Полное наименование',
     ogrn: '1177746123456',
     legalAddress: 'г. Москва, ул. Примерная, д. 1',
-    actualAddress: 'г. Москва, ул. Примерная, д. 1',
+    legalType: LegalType::UL,
     contact: ['name' => 'Иван Иванов', 'phone' => '+79001234567']
 );
+```
+
+Вместе с аккаунтом API готовит тестовые кампании, группы и креативы. Если часть данных не подготовилась, API отвечает `207 Multi-Status`: аккаунт создан, а причины — в предупреждениях.
+
+```php
+foreach ($created->getWarnings() as $warning) {
+    echo 'Предупреждение: ', $warning, PHP_EOL;
+}
 ```
 
 ## Тестирование
@@ -412,6 +504,7 @@ composer install
 composer test          # модульные тесты (PHPUnit)
 composer phpstan       # статический анализ
 composer cs            # проверка стиля кода (PSR-12)
+composer check-version # версия SDK == API_VERSION == openapi.json
 ```
 
 Интеграционные тесты против реальной песочницы по умолчанию пропускаются. Чтобы запустить их:

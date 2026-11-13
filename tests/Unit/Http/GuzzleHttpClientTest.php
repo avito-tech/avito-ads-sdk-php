@@ -7,6 +7,7 @@ namespace AvitoAds\Tests\Unit\Http;
 use AvitoAds\Exception\AccessDeniedException;
 use AvitoAds\Exception\AuthenticationException;
 use AvitoAds\Exception\BadRequestException;
+use AvitoAds\Exception\ConflictException;
 use AvitoAds\Exception\InvalidResponseException;
 use AvitoAds\Exception\NetworkException;
 use AvitoAds\Exception\NotFoundException;
@@ -68,6 +69,7 @@ final class GuzzleHttpClientTest extends TestCase
             '401' => [401, AuthenticationException::class],
             '403' => [403, AccessDeniedException::class],
             '404' => [404, NotFoundException::class],
+            '409' => [409, ConflictException::class],
             '429' => [429, RateLimitException::class],
             '500' => [500, ServerException::class],
             '503' => [503, ServerException::class],

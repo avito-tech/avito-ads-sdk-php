@@ -37,6 +37,9 @@ final class CampaignsFilter extends AbstractFilter
     }
 
     /**
+     * Значения не проверяются на клиенте: можно передавать любые статусы из
+     * \AvitoAds\Enum\CampaignStatus, включая новые (`will_launch_soon`, `pausing` и др.).
+     *
      * @param string[] $statuses см. \AvitoAds\Enum\CampaignStatus
      * @return self
      */

@@ -56,7 +56,8 @@
         "test": "phpunit",
         "phpstan": "phpstan analyse",
         "cs": "phpcs",
-        "cs-fix": "phpcbf"
+        "cs-fix": "phpcbf",
+        "check-version": "php scripts/check-version.php"
     },
     "config": {
         "sort-packages": true

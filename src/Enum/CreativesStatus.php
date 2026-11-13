@@ -6,6 +6,8 @@ namespace AvitoAds\Enum;
 
 /**
  * Статус креатива.
+ *
+ * Значения в ответах API не проверяются: неизвестный статус возвращается строкой как есть.
  */
 final class CreativesStatus extends AbstractEnum
 {
@@ -24,11 +26,20 @@ final class CreativesStatus extends AbstractEnum
     /** Регистрация в ЕРИР */
     public const ERIR_REGISTRATION = 'erir_registration';
 
+    /** Ждёт запуска */
+    public const WILL_LAUNCH_SOON = 'will_launch_soon';
+
     /** Активен */
     public const ACTIVE = 'active';
 
+    /** Приостанавливается */
+    public const PAUSING = 'pausing';
+
     /** Приостановлен */
     public const PAUSED = 'paused';
+
+    /** Возобновляется */
+    public const UNPAUSING = 'unpausing';
 
     /** Остановлен */
     public const STOPPED = 'stopped';

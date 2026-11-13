@@ -25,6 +25,8 @@ jobs:
         run: composer validate --strict
       - name: Install dependencies
         run: composer update --prefer-dist --no-progress
+      - name: Version check (Client::VERSION == API_VERSION == openapi.json)
+        run: composer check-version
       - name: Coding standard (PSR-12)
         run: composer cs
       - name: Static analysis
