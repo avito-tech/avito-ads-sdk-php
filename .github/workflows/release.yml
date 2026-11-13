@@ -1,0 +1,35 @@
+# Релиз по тегу vX.Y.Z: проверка версии и тестов → GitHub Release.
+# Packagist подхватывает тег сам через GitHub-интеграцию (проверить на packagist.org).
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+      - name: Tag matches version
+        # scripts/check-version.php на теге сверяет и GITHUB_REF_NAME.
+        run: composer check-version
+      - name: Test
+        run: vendor/bin/phpunit --testsuite unit
+      - name: GitHub Release (notes from CHANGELOG)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          awk -v v="[$ver]" '/^## /{ if (p) exit; if (index($0, v)) { p = 1; next } } p' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || { echo "В CHANGELOG.md нет раздела [$ver]"; exit 1; }
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
