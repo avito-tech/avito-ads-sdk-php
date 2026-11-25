@@ -11,24 +11,38 @@ use AvitoAds\Model\EntityStatistic;
 /**
  * Методы получения статистики по кампаниям, группам и креативам.
  *
- * Максимальная длина периода — 100 дней; даты в формате YYYY-MM-DD.
+ * Максимальная длина периода — 100 дней; даты в формате YYYY-MM-DD. В запросах по группам
+ * и креативам — от 1 до 5000 ID, повторяющиеся ID учитываются в лимите.
  */
 final class StatisticsResource extends AbstractResource
 {
     private const MAX_PERIOD_DAYS = 100;
 
+    private const MAX_IDS = 5000;
+
     /**
      * Статистика по кампании (плюс агрегаты по её группам и креативам).
      *
      * POST /v1/account/{accountID}/campaigns/{campaignID}/stats
+     *
+     * @param bool $includeConversions запросить конверсии кампании и групп
+     *                                 (`StatsData::getConversions()`)
      */
-    public function campaign(int $campaignId, string $dateFrom, string $dateTo): CampaignStatisticResult
-    {
+    public function campaign(
+        int $campaignId,
+        string $dateFrom,
+        string $dateTo,
+        bool $includeConversions = false
+    ): CampaignStatisticResult {
         $this->assertPeriod($dateFrom, $dateTo);
+        $body = ['dateFrom' => $dateFrom, 'dateTo' => $dateTo];
+        if ($includeConversions) {
+            $body['includeConversions'] = true;
+        }
         $response = $this->http->request(
             'POST',
             $this->accountPath('campaigns/' . $campaignId . '/stats'),
-            ['dateFrom' => $dateFrom, 'dateTo' => $dateTo]
+            $body
         );
 
         return CampaignStatisticResult::fromArray($response->getData());
@@ -39,16 +53,27 @@ final class StatisticsResource extends AbstractResource
      *
      * POST /v1/account/{accountID}/campaigns/{campaignID}/groups/stats
      *
-     * @param int[] $groupIds
+     * @param int[] $groupIds           от 1 до 5000 ID
+     * @param bool  $includeConversions запросить конверсии групп (`StatsData::getConversions()`)
      * @return EntityStatistic[]
      */
-    public function groups(int $campaignId, string $dateFrom, string $dateTo, array $groupIds): array
-    {
+    public function groups(
+        int $campaignId,
+        string $dateFrom,
+        string $dateTo,
+        array $groupIds,
+        bool $includeConversions = false
+    ): array {
         $this->assertPeriod($dateFrom, $dateTo);
+        $this->assertIds('groupIds', $groupIds);
+        $body = ['dateFrom' => $dateFrom, 'dateTo' => $dateTo, 'groupIDs' => array_values($groupIds)];
+        if ($includeConversions) {
+            $body['includeConversions'] = true;
+        }
         $response = $this->http->request(
             'POST',
             $this->accountPath('campaigns/' . $campaignId . '/groups/stats'),
-            ['dateFrom' => $dateFrom, 'dateTo' => $dateTo, 'groupIDs' => array_values($groupIds)]
+            $body
         );
 
         return $this->mapEntities($response->getData()['groups'] ?? []);
@@ -59,12 +84,13 @@ final class StatisticsResource extends AbstractResource
      *
      * POST /v1/account/{accountID}/campaigns/{campaignID}/creatives/stats
      *
-     * @param int[] $creativeIds
+     * @param int[] $creativeIds от 1 до 5000 ID
      * @return EntityStatistic[]
      */
     public function creatives(int $campaignId, string $dateFrom, string $dateTo, array $creativeIds): array
     {
         $this->assertPeriod($dateFrom, $dateTo);
+        $this->assertIds('creativeIds', $creativeIds);
         $response = $this->http->request(
             'POST',
             $this->accountPath('campaigns/' . $campaignId . '/creatives/stats'),
@@ -90,6 +116,22 @@ final class StatisticsResource extends AbstractResource
             },
             array_values($rows)
         );
+    }
+
+    /**
+     * @param int[] $ids
+     */
+    private function assertIds(string $field, array $ids): void
+    {
+        $count = count($ids);
+        if ($count < 1 || $count > self::MAX_IDS) {
+            throw new ValidationException(sprintf(
+                '%s должен содержать от 1 до %d ID, передано %d.',
+                $field,
+                self::MAX_IDS,
+                $count
+            ));
+        }
     }
 
     private function assertPeriod(string $dateFrom, string $dateTo): void

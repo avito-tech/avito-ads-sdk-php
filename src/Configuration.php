@@ -212,7 +212,7 @@ final class Configuration
      * Задаёт собственный User-Agent приложения.
      *
      * Метка SDK не заменяется, а дописывается через пробел:
-     * `my-app/1.0` → `my-app/1.0 avito-ads-sdk-php/1.4.0`. Если строка уже содержит
+     * `my-app/1.0` → `my-app/1.0 avito-ads-sdk-php/1.5.1`. Если строка уже содержит
      * `avito-ads-sdk-php/`, она отправляется как есть.
      *
      * @return static

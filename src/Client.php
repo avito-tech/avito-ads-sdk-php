@@ -38,12 +38,12 @@ final class Client
      * Версия SDK. Единственный источник версии в коде: из неё собирается User-Agent
      * (`avito-ads-sdk-php/<версия>`). Packagist берёт версию пакета из git-тега `v<версия>`.
      */
-    public const VERSION = '1.4.0';
+    public const VERSION = '1.5.1';
 
     /**
      * Версия публичного API Авито Рекламы (`info.version` в `openapi.json`), которую реализует SDK.
      */
-    public const API_VERSION = '1.4.0';
+    public const API_VERSION = '1.5.1';
 
     /** @var Configuration */
     private $config;

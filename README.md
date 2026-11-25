@@ -10,12 +10,12 @@ PHP-клиент для API **Авито Реклама** (Avito Ads API).
 
 ## Версия
 
-Версия SDK = версия публичного API Авито Рекламы (swagger), которую он реализует. Текущая — **1.4.0**.
+Версия SDK = версия публичного API Авито Рекламы (swagger), которую он реализует. Текущая — **1.5.1**.
 Спецификация лежит в корне репозитория (`openapi.json`), версии доступны в коде:
 
 ```php
-echo \AvitoAds\Client::VERSION;      // версия SDK, 1.4.0
-echo \AvitoAds\Client::API_VERSION;  // версия swagger, 1.4.0
+echo \AvitoAds\Client::VERSION;      // версия SDK, 1.5.1
+echo \AvitoAds\Client::API_VERSION;  // версия swagger, 1.5.1
 ```
 
 ## Возможности
@@ -85,7 +85,7 @@ SDK отправляет заголовок `User-Agent: avito-ads-sdk-php/<ве
 
 ```php
 $config = $config->withUserAgent('my-app/1.0');
-echo $config->getUserAgent(); // my-app/1.0 avito-ads-sdk-php/1.4.0
+echo $config->getUserAgent(); // my-app/1.0 avito-ads-sdk-php/1.5.1
 ```
 
 ### Окружения
@@ -276,7 +276,7 @@ try {
 
 ### Статистика
 
-Период не может превышать 100 дней; даты — в формате `YYYY-MM-DD`. Эти ограничения проверяются на стороне клиента.
+Период не может превышать 100 дней; даты — в формате `YYYY-MM-DD`; в запросах по группам и креативам — от 1 до 5000 ID. Эти ограничения проверяются на стороне клиента.
 
 ```php
 $stats = $client->statistics()->campaign($campaignId = 555, '2025-01-01', '2025-01-31');
@@ -287,6 +287,22 @@ echo 'Модель оплаты: ', $stats->getCampaign()->getPaymentModel(), PH
 
 $byGroups = $client->statistics()->groups($campaignId, '2025-01-01', '2025-01-31', [101, 102]);
 $byCreatives = $client->statistics()->creatives($campaignId, '2025-01-01', '2025-01-31', [201, 202]);
+```
+
+Конверсии кампании и групп запрашиваются последним параметром `$includeConversions` (по умолчанию `false`). У креативов API их не возвращает.
+
+```php
+$stats = $client->statistics()->campaign($campaignId, '2025-01-01', '2025-01-31', true);
+$conversions = $stats->getCampaign()->getTotalData()->getConversions(); // null — данных нет
+if ($conversions !== null) {
+    $contacts = $conversions->getContacts();     // контакты, только click-in
+    $goal = $conversions->getCustomGoal();       // главная цель, только click-out
+    $goalHits = $conversions->getGoalHits();     // события этой цели
+    $cpa = $conversions->getCpaKopeks();         // ?int: null — нет значения, 0 — ноль
+    $type = $conversions->getGoalType();         // ConversionGoalType: contacts / subscriptions / customGoal
+}
+
+$byGroups = $client->statistics()->groups($campaignId, '2025-01-01', '2025-01-31', [101, 102], true);
 ```
 
 ### Пользователи
