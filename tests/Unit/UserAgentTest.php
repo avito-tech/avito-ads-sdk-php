@@ -24,15 +24,15 @@ final class UserAgentTest extends TestCase
 
     public function testCustomUserAgentIsAppendedWithLabel(): void
     {
-        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.4.0', UserAgent::build('my-app/1.0'));
+        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.5.1', UserAgent::build('my-app/1.0'));
 
         $config = Configuration::create('id', 'secret', 1)->withUserAgent('my-app/1.0');
-        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.4.0', $config->getUserAgent());
+        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.5.1', $config->getUserAgent());
     }
 
     public function testLabelIsNotDuplicated(): void
     {
-        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.4.0', UserAgent::build('my-app/1.0 avito-ads-sdk-php/1.4.0'));
+        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.5.1', UserAgent::build('my-app/1.0 avito-ads-sdk-php/1.5.1'));
         // Без учёта регистра и версии.
         self::assertSame('my-app/1.0 Avito-Ads-SDK-PHP/0.9', UserAgent::build('my-app/1.0 Avito-Ads-SDK-PHP/0.9'));
     }
@@ -43,16 +43,16 @@ final class UserAgentTest extends TestCase
 
         self::assertCount(2, $requests);
         self::assertStringEndsWith('/token', (string) $requests[0]->getUri());
-        self::assertSame('avito-ads-sdk-php/1.4.0', $requests[0]->getHeaderLine('User-Agent'));
-        self::assertSame('avito-ads-sdk-php/1.4.0', $requests[1]->getHeaderLine('User-Agent'));
+        self::assertSame('avito-ads-sdk-php/1.5.1', $requests[0]->getHeaderLine('User-Agent'));
+        self::assertSame('avito-ads-sdk-php/1.5.1', $requests[1]->getHeaderLine('User-Agent'));
     }
 
     public function testCustomUserAgentIsSentToTokenAndApiRequests(): void
     {
         $requests = $this->callBalance(Configuration::create('id', 'secret', 123)->withUserAgent('my-app/1.0'));
 
-        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.4.0', $requests[0]->getHeaderLine('User-Agent'));
-        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.4.0', $requests[1]->getHeaderLine('User-Agent'));
+        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.5.1', $requests[0]->getHeaderLine('User-Agent'));
+        self::assertSame('my-app/1.0 avito-ads-sdk-php/1.5.1', $requests[1]->getHeaderLine('User-Agent'));
     }
 
     /**

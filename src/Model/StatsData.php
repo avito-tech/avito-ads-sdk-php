@@ -112,4 +112,15 @@ final class StatsData extends AbstractModel
     {
         return $this->getFloat('vtr');
     }
+
+    /**
+     * Конверсии за день или за период.
+     *
+     * null, если конверсии не запрошены (`includeConversions` в StatisticsResource::campaign()
+     * и groups()) или данных нет. В статистике креативов всегда null.
+     */
+    public function getConversions(): ?Conversions
+    {
+        return $this->getModel('conversions', Conversions::class);
+    }
 }

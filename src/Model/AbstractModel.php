@@ -121,6 +121,20 @@ abstract class AbstractModel
     }
 
     /**
+     * Вложенная модель; null, если поля нет или оно равно null.
+     *
+     * @template T of AbstractModel
+     * @param class-string<T> $class
+     * @return T|null
+     */
+    protected function getModel(string $key, string $class): ?AbstractModel
+    {
+        $value = $this->data[$key] ?? null;
+
+        return is_array($value) ? $class::fromArray($value) : null;
+    }
+
+    /**
      * Список вложенных моделей из массива объектов.
      *
      * @template T of AbstractModel
